@@ -1,6 +1,32 @@
-# React + TypeScript + Vite
+# Pulse — Personal Cash-Flow Calendar
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Local-first React app that answers one question: *when do I get paid, how much, and what's left after the bills I know are coming?* Data lives in `localStorage` (JSON export/import for backup); no backend, no bank sync.
+
+## Commands
+
+- `npm run dev` — dev server
+- `npm run build` — production build
+- `npm run preview` — preview the built app
+- `npm run lint` — oxlint
+- `npx vitest run` — unit tests (projection engine, dates, rules, store)
+
+## Architecture
+
+- `src/lib/dates.ts` — floating local-date helpers (UTC-midnight convention, dodges the rrule DST bug)
+- `src/lib/rules.ts` — Rule model, recurrence builders, validation
+- `src/lib/engine.ts` — pure projection engine: rules → events + daily balance + month summaries
+- `src/store/useStore.ts` — zustand store with guarded localStorage persistence + export/import
+- `src/components/` — TopBar/BalanceCounter, zoomable Canvas (pinch/scroll survival kit), Wave, MonthTiles, MonthView, EventCard, RuleSheet, Fab
+
+## Future ideas (out of scope for v1)
+
+- PWA / offline install
+- iCal import
+- Focus-month navigation (tile click → that specific month; v1 zooms into the current month)
+
+---
+
+This project was scaffolded from a React + TypeScript + Vite template.
 
 Currently, two official plugins are available:
 
