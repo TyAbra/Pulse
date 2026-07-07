@@ -13,7 +13,7 @@ export function BalanceCounter({ value, label, delta }: { value: number; label: 
     <div>
       <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--dim)]">{label}</div>
       <motion.div
-        className="num text-3xl font-extrabold bg-gradient-to-r from-[var(--text)] to-[var(--green)] bg-clip-text text-transparent"
+        className="num text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-[var(--text)] to-[var(--green)] bg-clip-text text-transparent"
         style={{ textShadow: "0 0 40px #34f5a033" }}
       >
         {text}

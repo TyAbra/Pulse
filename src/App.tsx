@@ -52,7 +52,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-full w-screen overflow-hidden">
+    <div className="h-full w-full overflow-hidden">
       <div className="aurora" />
       {corrupt && (
         <div className="relative z-20 m-4 rounded-xl border border-[var(--red)] bg-[#2a1220] p-3 text-sm">

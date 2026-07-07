@@ -22,7 +22,7 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
   summaries: MonthSummary[]; dailyBalance: DayBalance[]; onPick: (month: string) => void;
 }) {
   return (
-    <div className="absolute inset-x-0 bottom-8 z-[4] flex gap-3 overflow-x-auto px-6">
+    <div className="absolute inset-x-0 bottom-20 z-[4] mx-auto flex max-w-3xl gap-3 overflow-x-auto px-4">
       {summaries.map((m, i) => {
         const hot = m.net >= 0;
         const monthDays = dailyBalance.filter(d => monthKey(d.date) === m.month);
