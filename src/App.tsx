@@ -68,7 +68,7 @@ export default function App() {
       />
       <Canvas zoom={zoom} onZoom={setZoom}>
         <Wave data={projection.dailyBalance} width={size.w} height={size.h - 120} />
-        <Fish height={size.h - 120} delta={delta} balance={endBalance} />
+        <Fish width={size.w} height={size.h - 120} delta={delta} balance={endBalance} />
         {zoom === "month"
           ? <MonthView month={focusMonth} events={projection.events} onEdit={openEdit}
               onNav={(dir) => setFocusMonth(monthKey(addMonths(`${focusMonth}-01`, dir)))} />

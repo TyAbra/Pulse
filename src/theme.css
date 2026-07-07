@@ -34,27 +34,6 @@ body {
   input, select, textarea { font-size: 16px; }
 }
 
-/* Fish swimming beneath the balance wave */
-.fish {
-  position: absolute;
-  will-change: transform;
-  animation: swim linear infinite;
-}
-.fish.left { animation-name: swim-left; }
-@keyframes swim {
-  0%   { transform: translateX(-8vw) translateY(0); }
-  50%  { transform: translateX(54vw) translateY(-6px); }
-  100% { transform: translateX(116vw) translateY(0); }
-}
-@keyframes swim-left {
-  0%   { transform: translateX(116vw) scaleX(-1) translateY(0); }
-  50%  { transform: translateX(54vw) scaleX(-1) translateY(6px); }
-  100% { transform: translateX(-8vw) scaleX(-1) translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fish { animation: none; opacity: 0.2; }
-}
-
 .aurora {
   position: fixed; inset: -40%; pointer-events: none; filter: blur(10px);
   background:
