@@ -3,6 +3,7 @@ import { TopBar, type ZoomLevel } from "./components/TopBar";
 import { Fab } from "./components/Fab";
 import { Canvas } from "./components/Canvas";
 import { Wave } from "./components/Wave";
+import { Fish } from "./components/Fish";
 import { MonthTiles } from "./components/MonthTiles";
 import { MonthView } from "./components/MonthView";
 import { RuleSheet } from "./components/RuleSheet";
@@ -67,6 +68,7 @@ export default function App() {
       />
       <Canvas zoom={zoom} onZoom={setZoom}>
         <Wave data={projection.dailyBalance} width={size.w} height={size.h - 120} />
+        <Fish height={size.h - 120} />
         {zoom === "month"
           ? <MonthView month={focusMonth} events={projection.events} onEdit={openEdit}
               onNav={(dir) => setFocusMonth(monthKey(addMonths(`${focusMonth}-01`, dir)))} />
