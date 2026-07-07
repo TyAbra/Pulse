@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TopBar, type ZoomLevel } from "./components/TopBar";
 import { Fab } from "./components/Fab";
 import { Canvas } from "./components/Canvas";
@@ -20,6 +20,18 @@ export default function App() {
   const today = todayLocal();
   const [focusMonth, setFocusMonth] = useState<string>(monthKey(today));
 
+  // Track viewport so the SVG wave re-renders on resize / device rotation.
+  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, []);
+
   const horizonMonths = zoom === "quarter" ? 3 : 12;
   // In month view, project from the focused month's start to its end; the engine
   // still walks the running balance forward from asOfDate, so the wave stays honest
@@ -40,7 +52,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="h-full w-screen overflow-hidden">
       <div className="aurora" />
       {corrupt && (
         <div className="relative z-20 m-4 rounded-xl border border-[var(--red)] bg-[#2a1220] p-3 text-sm">
@@ -54,7 +66,7 @@ export default function App() {
         zoom={zoom} onZoom={setZoom}
       />
       <Canvas zoom={zoom} onZoom={setZoom}>
-        <Wave data={projection.dailyBalance} width={window.innerWidth} height={window.innerHeight - 120} />
+        <Wave data={projection.dailyBalance} width={size.w} height={size.h - 120} />
         {zoom === "month"
           ? <MonthView month={focusMonth} events={projection.events} onEdit={openEdit}
               onNav={(dir) => setFocusMonth(monthKey(addMonths(`${focusMonth}-01`, dir)))} />

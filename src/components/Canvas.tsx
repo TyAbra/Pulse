@@ -49,7 +49,7 @@ export function Canvas({ zoom, onZoom, children }: {
   );
 
   return (
-    <div ref={ref} className="relative h-[calc(100vh-120px)] touch-none select-none">
+    <div ref={ref} className="relative h-[calc(100dvh-120px)] touch-none select-none">
       <AnimatePresence mode="wait">
         <motion.div key={zoom} className="absolute inset-0"
           initial={{ opacity: 0, scale: zoom === "month" ? 1.06 : 0.94 }}

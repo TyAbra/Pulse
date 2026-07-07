@@ -49,7 +49,7 @@ export function TopBar({ balance, label, delta, zoom, onZoom }: {
   balance: number; label: string; delta?: string; zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void;
 }) {
   return (
-    <div className="flex items-start justify-between p-5 z-10 relative">
+    <div className="safe-top flex items-start justify-between px-5 pb-5 z-10 relative">
       <BalanceCounter value={balance} label={label} delta={delta} />
       <div className="flex items-start">
         <div className="flex gap-1 rounded-full border border-[#232c3f] bg-[#10141ecc] p-1 backdrop-blur">
