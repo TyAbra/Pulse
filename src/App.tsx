@@ -9,7 +9,7 @@ import { RuleSheet } from "./components/RuleSheet";
 import { useStore } from "./store/useStore";
 import { project, type CashEvent } from "./lib/engine";
 import type { Rule } from "./lib/rules";
-import { addMonths, monthKey, todayLocal } from "./lib/dates";
+import { addMonths, daysInMonth, monthKey, todayLocal } from "./lib/dates";
 
 export default function App() {
   const { rules, settings, corrupt } = useStore();
@@ -18,9 +18,17 @@ export default function App() {
   const [editing, setEditing] = useState<Rule | null>(null);
 
   const today = todayLocal();
-  const horizonMonths = zoom === "month" ? 1 : zoom === "quarter" ? 3 : 12;
-  const to = addMonths(today, horizonMonths);
-  const projection = useMemo(() => project(rules, settings, today, to), [rules, settings, today, to]);
+  const [focusMonth, setFocusMonth] = useState<string>(monthKey(today));
+
+  const horizonMonths = zoom === "quarter" ? 3 : 12;
+  // In month view, project from the focused month's start to its end; the engine
+  // still walks the running balance forward from asOfDate, so the wave stays honest
+  // even when the focused month is far in the future.
+  const from = zoom === "month" ? `${focusMonth}-01` : today;
+  const to = zoom === "month"
+    ? `${focusMonth}-${String(daysInMonth(focusMonth)).padStart(2, "0")}`
+    : addMonths(today, horizonMonths);
+  const projection = useMemo(() => project(rules, settings, from, to), [rules, settings, from, to]);
 
   const endBalance = projection.dailyBalance.at(-1)?.balance ?? settings.startingBalance;
   const delta = endBalance - settings.startingBalance;
@@ -42,15 +50,16 @@ export default function App() {
       <TopBar
         balance={endBalance}
         label={`Projected · ${to}`}
-        delta={`${delta >= 0 ? "▲ +" : "▼ -"}$${Math.abs(delta).toLocaleString()} next ${horizonMonths} mo`}
+        delta={`${delta >= 0 ? "▲ +" : "▼ -"}$${Math.abs(delta).toLocaleString()} ${zoom === "month" ? "by month end" : `next ${horizonMonths} mo`}`}
         zoom={zoom} onZoom={setZoom}
       />
       <Canvas zoom={zoom} onZoom={setZoom}>
         <Wave data={projection.dailyBalance} width={window.innerWidth} height={window.innerHeight - 120} />
         {zoom === "month"
-          ? <MonthView month={monthKey(today)} events={projection.events} onEdit={openEdit} />
+          ? <MonthView month={focusMonth} events={projection.events} onEdit={openEdit}
+              onNav={(dir) => setFocusMonth(monthKey(addMonths(`${focusMonth}-01`, dir)))} />
           : <MonthTiles summaries={projection.monthSummaries} dailyBalance={projection.dailyBalance}
-              onPick={() => setZoom("month")} />}
+              onPick={(month) => { setFocusMonth(month); setZoom("month"); }} />}
       </Canvas>
       <Fab onClick={openAdd} />
       {sheetOpen && <RuleSheet editing={editing} onClose={() => setSheetOpen(false)} />}

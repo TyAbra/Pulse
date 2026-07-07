@@ -22,7 +22,7 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
   summaries: MonthSummary[]; dailyBalance: DayBalance[]; onPick: (month: string) => void;
 }) {
   return (
-    <div className="absolute inset-x-0 bottom-8 z-[4] flex gap-3 px-6">
+    <div className="absolute inset-x-0 bottom-8 z-[4] flex gap-3 overflow-x-auto px-6">
       {summaries.map((m, i) => {
         const hot = m.net >= 0;
         const monthDays = dailyBalance.filter(d => monthKey(d.date) === m.month);
@@ -34,7 +34,7 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, type: "spring", stiffness: 200, damping: 22 }}
             whileHover={{ y: -6, scale: 1.03 }}
-            className={`flex-1 rounded-2xl border p-3 text-center backdrop-blur
+            className={`min-w-[104px] flex-1 shrink-0 rounded-2xl border p-3 text-center backdrop-blur
               ${hot ? "border-[#232c3f] bg-[#141926ee]" : "border-[#3f2330] bg-[#1a1420ee]"}`}>
             <div className="text-[11px] uppercase tracking-widest text-[var(--dim)]">
               {MONTH_NAMES[Number(m.month.slice(5)) - 1]} {m.month.slice(2, 4)}
@@ -42,6 +42,11 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
             <div className={`num text-lg font-extrabold ${hot ? "text-[var(--green)]" : "text-[var(--red)]"}`}
               style={{ textShadow: hot ? "0 0 16px #34f5a066" : "0 0 16px #ff5d7a55" }}>
               {m.net >= 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString()}
+            </div>
+            <div className="mt-0.5 flex items-center justify-center gap-2 text-[10px]">
+              <span className="num text-[var(--green)]">in ${m.in.toLocaleString()}</span>
+              <span className="text-[var(--dim)]">·</span>
+              <span className="num text-[var(--red)]">out ${m.out.toLocaleString()}</span>
             </div>
             <Spark points={spark} />
           </motion.button>

@@ -2,8 +2,10 @@ import type { CashEvent } from "../lib/engine";
 import { daysInMonth, todayLocal } from "../lib/dates";
 import { EventCard } from "./EventCard";
 
-export function MonthView({ month, events, onEdit }: {
-  month: string; events: CashEvent[]; onEdit: (e: CashEvent) => void;
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+export function MonthView({ month, events, onEdit, onNav }: {
+  month: string; events: CashEvent[]; onEdit: (e: CashEvent) => void; onNav: (dir: 1 | -1) => void;
 }) {
   const today = todayLocal();
   const n = daysInMonth(month);
@@ -13,8 +15,16 @@ export function MonthView({ month, events, onEdit }: {
     const d = Number(e.date.slice(8));
     byDay.set(d, [...(byDay.get(d) ?? []), e]);
   }
+  const navBtn = "flex h-8 w-8 items-center justify-center rounded-full border border-[#232c3f] bg-[#10141ecc] text-[var(--dim)] hover:text-[var(--text)]";
   return (
     <div className="relative z-[4] flex h-full flex-col justify-between px-6 pb-8">
+      <div className="mt-1 flex items-center justify-center gap-4">
+        <button onClick={() => onNav(-1)} aria-label="Previous month" className={navBtn}>‹</button>
+        <div className="min-w-[9rem] text-center text-sm font-semibold tracking-wide">
+          {MONTH_NAMES[Number(month.slice(5)) - 1]} {month.slice(0, 4)}
+        </div>
+        <button onClick={() => onNav(1)} aria-label="Next month" className={navBtn}>›</button>
+      </div>
       <div className="mt-2 flex gap-1">
         {Array.from({ length: n }, (_, i) => i + 1).map((d) => {
           const evs = byDay.get(d) ?? [];
