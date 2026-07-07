@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #05070b;
+  --panel: #12151c;
+  --green: #34f5a0;
+  --green2: #0fd482;
+  --red: #ff5d7a;
+  --text: #eef2f8;
+  --dim: #7d8899;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Space Grotesk", -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.num { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+.aurora {
+  position: fixed; inset: -40%; pointer-events: none; filter: blur(10px);
+  background:
+    radial-gradient(40% 30% at 30% 60%, #34f5a01e 0%, transparent 70%),
+    radial-gradient(35% 28% at 70% 40%, #7b5cff1c 0%, transparent 70%);
+  animation: aurora 12s ease-in-out infinite alternate;
+}
+@keyframes aurora { from { transform: rotate(-3deg) scale(1); } to { transform: rotate(3deg) scale(1.15); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora { animation: none; }
+  * { animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
+}
