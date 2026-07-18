@@ -43,8 +43,18 @@ export default function App() {
     : addMonths(today, horizonMonths);
   const projection = useMemo(() => project(rules, settings, from, to), [rules, settings, from, to]);
 
-  const endBalance = projection.dailyBalance.at(-1)?.balance ?? settings.startingBalance;
-  const delta = endBalance - settings.startingBalance;
+  // Always project through the current calendar month so the header can show
+  // "now" vs "month end" regardless of which zoom the canvas is on.
+  const monthEndDate = `${monthKey(today)}-${String(daysInMonth(monthKey(today))).padStart(2, "0")}`;
+  const monthEndProjection = useMemo(
+    () => project(rules, settings, today, monthEndDate),
+    [rules, settings, today, monthEndDate],
+  );
+
+  const nowBalance = settings.startingBalance;
+  const monthEndBalance = monthEndProjection.dailyBalance.at(-1)?.balance ?? nowBalance;
+  const endBalance = projection.dailyBalance.at(-1)?.balance ?? nowBalance;
+  const delta = endBalance - nowBalance;
 
   const openAdd = () => { setEditing(null); setSheetOpen(true); };
   const openEdit = (e: CashEvent) => {
@@ -61,9 +71,8 @@ export default function App() {
         </div>
       )}
       <TopBar
-        balance={endBalance}
-        label={`Projected · ${to}`}
-        delta={`${delta >= 0 ? "▲ +" : "▼ -"}$${Math.abs(delta).toLocaleString()} ${zoom === "month" ? "by month end" : `next ${horizonMonths} mo`}`}
+        now={nowBalance}
+        monthEnd={monthEndBalance}
         zoom={zoom} onZoom={setZoom}
       />
       <Canvas zoom={zoom} onZoom={setZoom}>
