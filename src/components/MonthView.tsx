@@ -7,8 +7,9 @@ import { EventCard } from "./EventCard";
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ month, events, onEdit, onNav }: {
-  month: string; events: CashEvent[]; onEdit: (e: CashEvent) => void; onNav: (dir: 1 | -1) => void;
+export function MonthView({ month, events, startBalance, endBalance, onEdit, onNav }: {
+  month: string; events: CashEvent[]; startBalance: number; endBalance: number;
+  onEdit: (e: CashEvent) => void; onNav: (dir: 1 | -1) => void;
 }) {
   const today = todayLocal();
   const [showDetails, setShowDetails] = useState(false);
@@ -42,7 +43,21 @@ export function MonthView({ month, events, onEdit, onNav }: {
 
       {/* Money summary — the whole point: in, out, and where you land */}
       <div className="rounded-3xl border border-[#232c3f] bg-[#10141ecc] p-5 backdrop-blur">
-        <div className="flex items-stretch justify-between gap-3">
+        <div className="pb-4 text-center">
+          <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">
+            Left over end of {MONTH_NAMES[Number(month.slice(5)) - 1]}
+          </div>
+          <div className={`num text-4xl font-extrabold ${endBalance >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+            style={{ textShadow: endBalance >= 0 ? "0 0 24px #34f5a055" : "0 0 24px #ff5d7a55" }}>
+            {endBalance < 0 ? "−" : ""}${Math.round(Math.abs(endBalance)).toLocaleString()}
+          </div>
+          <div className="mt-1 text-[11px] text-[var(--dim)]">
+            starts at <span className="num text-[var(--text)]">
+              {startBalance < 0 ? "−" : ""}${Math.round(Math.abs(startBalance)).toLocaleString()}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-stretch justify-between gap-3 border-t border-[#232c3f] pt-4">
           <div className="flex-1">
             <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">Coming in</div>
             <div className="num text-2xl font-extrabold text-[var(--green)]" style={{ textShadow: "0 0 18px #34f5a044" }}>

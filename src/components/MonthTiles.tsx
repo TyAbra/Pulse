@@ -18,13 +18,22 @@ function Spark({ points }: { points: number[] }) {
   );
 }
 
+const money = (n: number) =>
+  `${n < 0 ? "−" : ""}$${Math.round(Math.abs(n)).toLocaleString()}`;
+
 export function MonthTiles({ summaries, dailyBalance, onPick }: {
   summaries: MonthSummary[]; dailyBalance: DayBalance[]; onPick: (month: string) => void;
 }) {
+  // A quarter fits in a row; a year needs to wrap into a grid or the tiles are
+  // unreadable slivers in a horizontal scroller.
+  const grid = summaries.length > 4;
   return (
-    <div className="absolute inset-x-0 bottom-20 z-[4] mx-auto flex max-w-3xl gap-3 overflow-x-auto px-4">
+    <div className={`absolute inset-x-0 bottom-24 z-[4] mx-auto max-w-3xl px-4 ${
+      grid
+        ? "top-2 grid auto-rows-min grid-cols-2 gap-2 overflow-y-auto pb-2 sm:grid-cols-3 md:grid-cols-4"
+        : "flex gap-3 overflow-x-auto"}`}>
       {summaries.map((m, i) => {
-        const hot = m.net >= 0;
+        const hot = m.endBalance >= 0;
         const monthDays = dailyBalance.filter(d => monthKey(d.date) === m.month);
         const spark = monthDays
           .filter((_, idx, arr) => idx % Math.max(1, Math.ceil(arr.length / 12)) === 0)
@@ -39,9 +48,14 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
             <div className="text-[11px] uppercase tracking-widest text-[var(--dim)]">
               {MONTH_NAMES[Number(m.month.slice(5)) - 1]} {m.month.slice(2, 4)}
             </div>
-            <div className={`num text-lg font-extrabold ${hot ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+            {/* The headline is what you'd actually have at month end, not the flow. */}
+            <div className={`num text-xl font-extrabold leading-tight ${hot ? "text-[var(--green)]" : "text-[var(--red)]"}`}
               style={{ textShadow: hot ? "0 0 16px #34f5a066" : "0 0 16px #ff5d7a55" }}>
-              {m.net >= 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString()}
+              {money(m.endBalance)}
+            </div>
+            <div className="text-[9px] uppercase tracking-widest text-[var(--dim)]">left over</div>
+            <div className={`num mt-1 whitespace-nowrap text-[11px] font-semibold ${m.net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+              {m.net >= 0 ? "▲" : "▼"} {m.net >= 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString()}
             </div>
             <div className="mt-0.5 flex items-center justify-center gap-2 text-[10px]">
               <span className="num text-[var(--green)]">in ${m.in.toLocaleString()}</span>

@@ -38,9 +38,12 @@ export default function App() {
   // still walks the running balance forward from asOfDate, so the wave stays honest
   // even when the focused month is far in the future.
   const from = zoom === "month" ? `${focusMonth}-01` : today;
-  const to = zoom === "month"
-    ? `${focusMonth}-${String(daysInMonth(focusMonth)).padStart(2, "0")}`
-    : addMonths(today, horizonMonths);
+  // Snap the horizon to a month boundary: a window ending mid-month would render a
+  // half-month tile whose "left over" silently omits the rest of that month.
+  const lastMonth = zoom === "month"
+    ? focusMonth
+    : monthKey(addMonths(today, horizonMonths - 1));
+  const to = `${lastMonth}-${String(daysInMonth(lastMonth)).padStart(2, "0")}`;
   const projection = useMemo(() => project(rules, settings, from, to), [rules, settings, from, to]);
 
   // Always project through the current calendar month so the header can show
@@ -79,7 +82,10 @@ export default function App() {
         <Wave data={projection.dailyBalance} width={size.w} height={size.h - 120} />
         <Fish data={projection.dailyBalance} width={size.w} height={size.h - 120} delta={delta} balance={endBalance} />
         {zoom === "month"
-          ? <MonthView month={focusMonth} events={projection.events} onEdit={openEdit}
+          ? <MonthView month={focusMonth} events={projection.events}
+              startBalance={projection.dailyBalance[0]?.balance ?? nowBalance}
+              endBalance={endBalance}
+              onEdit={openEdit}
               onNav={(dir) => setFocusMonth(monthKey(addMonths(`${focusMonth}-01`, dir)))} />
           : <MonthTiles summaries={projection.monthSummaries} dailyBalance={projection.dailyBalance}
               onPick={(month) => { setFocusMonth(month); setZoom("month"); }} />}

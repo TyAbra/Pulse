@@ -39,11 +39,19 @@ describe("project", () => {
     expect(at("2026-08-01")).toBe(5800 - 1800); // +2400 (Jul 31) then -1800 rent
   });
 
-  it("summarizes months", () => {
+  it("summarizes months with the balance you land on", () => {
     const { monthSummaries } = project([paycheck, rent], settings, "2026-07-01", "2026-08-31");
     expect(monthSummaries).toEqual([
-      { month: "2026-07", in: 4800, out: 0, net: 4800 },
-      { month: "2026-08", in: 4800, out: 1800, net: 3000 },
+      { month: "2026-07", in: 4800, out: 0, net: 4800, startBalance: 1000, endBalance: 5800 },
+      { month: "2026-08", in: 4800, out: 1800, net: 3000, startBalance: 4000, endBalance: 8800 },
+    ]);
+  });
+
+  it("still summarizes a month with no events", () => {
+    const { monthSummaries } = project([oneOff], settings, "2026-07-01", "2026-08-31");
+    expect(monthSummaries).toEqual([
+      { month: "2026-07", in: 500, out: 0, net: 500, startBalance: 1000, endBalance: 1500 },
+      { month: "2026-08", in: 0, out: 0, net: 0, startBalance: 1500, endBalance: 1500 },
     ]);
   });
 

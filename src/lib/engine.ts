@@ -5,7 +5,16 @@ import type { Rule } from "./rules";
 export interface Settings { startingBalance: number; asOfDate: LocalDate; }
 export interface CashEvent { date: LocalDate; ruleId: string; name: string; amount: number; kind: "income" | "expense"; emoji?: string; }
 export interface DayBalance { date: LocalDate; balance: number; }
-export interface MonthSummary { month: string; in: number; out: number; net: number; }
+export interface MonthSummary {
+  month: string;
+  in: number;
+  out: number;
+  net: number;
+  /** Projected balance on the first day of the month that falls inside the window. */
+  startBalance: number;
+  /** Projected balance on the last day of the month that falls inside the window — "what you'd have". */
+  endBalance: number;
+}
 
 const MAX_DAYS = 365 * 5;
 
@@ -56,13 +65,21 @@ export function project(rules: Rule[], settings: Settings, from: LocalDate, to: 
     .filter((e) => compare(e.date, from) >= 0 && compare(e.date, end) <= 0)
     .sort((a, b) => compare(a.date, b.date) || a.name.localeCompare(b.name));
 
+  // Seed a summary for every month the window touches — a quiet month still has a
+  // balance worth showing, and an empty tile is better than a missing one.
   const monthMap = new Map<string, MonthSummary>();
+  for (const d of dailyBalance) {
+    const key = monthKey(d.date);
+    const m = monthMap.get(key);
+    if (m) m.endBalance = d.balance;
+    else monthMap.set(key, { month: key, in: 0, out: 0, net: 0, startBalance: d.balance, endBalance: d.balance });
+  }
   for (const e of events) {
     const key = monthKey(e.date);
-    const m = monthMap.get(key) ?? { month: key, in: 0, out: 0, net: 0 };
+    const m = monthMap.get(key);
+    if (!m) continue;
     if (e.kind === "income") m.in += e.amount; else m.out += e.amount;
     m.net = m.in - m.out;
-    monthMap.set(key, m);
   }
   const monthSummaries = [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month));
 
