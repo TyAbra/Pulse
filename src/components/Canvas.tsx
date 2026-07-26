@@ -49,7 +49,10 @@ export function Canvas({ zoom, onZoom, children }: {
   );
 
   return (
-    <div ref={ref} className="relative h-[calc(100dvh-120px)] touch-none select-none">
+    // Month view is a scrollable list, so it needs vertical panning; the zoomed-out
+    // levels keep touch-action:none for the pinch-zoom survival kit.
+    <div ref={ref} className={`relative h-[calc(100dvh-120px)] select-none ${
+      zoom === "month" ? "touch-pan-y" : "touch-none"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={zoom} className="absolute inset-0"
           initial={{ opacity: 0, scale: zoom === "month" ? 1.06 : 0.94 }}

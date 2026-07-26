@@ -32,8 +32,10 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
 
   const navBtn = "flex h-9 w-9 items-center justify-center rounded-full border border-[#232c3f] bg-[#10141ecc] text-lg text-[var(--dim)] hover:text-[var(--text)]";
   return (
-    <div className="relative z-[4] mx-auto flex h-full w-full max-w-md flex-col gap-4 px-4 pb-6">
-      <div className="mt-1 flex items-center justify-center gap-4">
+    // The whole column scrolls. A nested flex-1 scroll region collapses to nothing
+    // once the summary card is tall, which strands the event cards below the fold.
+    <div className="relative z-[4] mx-auto flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-6">
+      <div className="mt-1 flex shrink-0 items-center justify-center gap-4">
         <button onClick={() => onNav(-1)} aria-label="Previous month" className={navBtn}>‹</button>
         <div className="min-w-[9rem] text-center text-sm font-semibold tracking-wide">
           {MONTH_NAMES[Number(month.slice(5)) - 1]} {month.slice(0, 4)}
@@ -42,7 +44,7 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
       </div>
 
       {/* Money summary — the whole point: in, out, and where you land */}
-      <div className="rounded-3xl border border-[#232c3f] bg-[#10141ecc] p-5 backdrop-blur">
+      <div className="shrink-0 rounded-3xl border border-[#232c3f] bg-[#10141ecc] p-5 backdrop-blur">
         <div className="pb-4 text-center">
           <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">
             Left over end of {MONTH_NAMES[Number(month.slice(5)) - 1]}
@@ -81,7 +83,7 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
       </div>
 
       <button onClick={() => setShowDetails(s => !s)}
-        className="self-center rounded-full border border-[#232c3f] bg-[#10141ecc] px-4 py-1.5 text-[11px] font-semibold text-[var(--dim)] hover:text-[var(--text)]">
+        className="shrink-0 self-center rounded-full border border-[#232c3f] bg-[#10141ecc] px-4 py-1.5 text-[11px] font-semibold text-[var(--dim)] hover:text-[var(--text)]">
         {showDetails ? "Hide details" : "Details & calendar"}
       </button>
 
@@ -90,7 +92,7 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
           <motion.div
             initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+            className="flex shrink-0 flex-col gap-3 overflow-hidden">
             <div>
               <div className="grid grid-cols-7 gap-1 pb-1">
                 {WEEKDAYS.map((w, i) => (
@@ -115,7 +117,7 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
                 })}
               </div>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            <div className="flex flex-col gap-2">
               {monthEvents.map((e, i) => (
                 <EventCard key={`${e.ruleId}-${e.date}`} event={e} projected={e.date > today} onClick={() => onEdit(e)} index={i} />
               ))}
