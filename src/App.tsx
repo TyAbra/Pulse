@@ -98,7 +98,7 @@ export default function App() {
               onPick={(month) => { setFocusMonth(month); setZoom("month"); }} />}
       </Canvas>
       <Fab onClick={openAdd} />
-      {sheetOpen && <RuleSheet editing={editing} onClose={() => setSheetOpen(false)} />}
+      {sheetOpen && <RuleSheet editing={editing} now={nowBalance} onClose={() => setSheetOpen(false)} />}
     </div>
   );
 }

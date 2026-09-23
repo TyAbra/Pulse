@@ -18,6 +18,7 @@ export interface PersistedState { rules: Rule[]; settings: Settings; }
 interface StoreState extends PersistedState {
   corrupt: boolean;
   addRule: (r: Rule) => void;
+  addRules: (r: Rule[]) => void;
   updateRule: (r: Rule) => void;
   deleteRule: (id: string) => void;
   setSettings: (s: Settings) => void;
@@ -56,6 +57,8 @@ function persist(s: PersistedState) {
 export const useStore = create<StoreState>((set, get) => ({
   ...loadPersisted(),
   addRule: (r) => set((s) => { const next = { rules: [...s.rules, r], settings: s.settings }; persist(next); return next; }),
+  // One write for a whole batch, so a bulk add can't half-persist.
+  addRules: (rs) => set((s) => { const next = { rules: [...s.rules, ...rs], settings: s.settings }; persist(next); return next; }),
   updateRule: (r) => set((s) => { const next = { rules: s.rules.map(x => x.id === r.id ? r : x), settings: s.settings }; persist(next); return next; }),
   deleteRule: (id) => set((s) => { const next = { rules: s.rules.filter(x => x.id !== id), settings: s.settings }; persist(next); return next; }),
   setSettings: (settings) => set((s) => { const next = { rules: s.rules, settings }; persist(next); return next; }),
