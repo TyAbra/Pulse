@@ -54,7 +54,13 @@ export default function App() {
     [rules, settings, today, monthEndDate],
   );
 
-  const nowBalance = settings.startingBalance;
+  // "Now" is the start-of-day anchor plus anything already logged for today (or since
+  // the anchor), so a charge added the day it hits shows up immediately.
+  const todayProjection = useMemo(() => project(rules, settings, today, today), [rules, settings, today]);
+  const nowBalance = todayProjection.dailyBalance.at(-1)?.balance ?? settings.startingBalance;
+  const todayNet = todayProjection.events.reduce(
+    (sum, e) => sum + (e.kind === "income" ? e.amount : -e.amount), 0);
+
   const monthEndBalance = monthEndProjection.dailyBalance.at(-1)?.balance ?? nowBalance;
   const endBalance = projection.dailyBalance.at(-1)?.balance ?? nowBalance;
   const delta = endBalance - nowBalance;
@@ -76,6 +82,7 @@ export default function App() {
       <TopBar
         now={nowBalance}
         monthEnd={monthEndBalance}
+        todayNet={todayNet}
         zoom={zoom} onZoom={setZoom}
       />
       <Canvas zoom={zoom} onZoom={setZoom}>

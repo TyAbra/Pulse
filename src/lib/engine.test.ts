@@ -55,6 +55,23 @@ describe("project", () => {
     ]);
   });
 
+  it("applies charges dated on the as-of day", () => {
+    const todayCharge: Rule = { id: "c", name: "Costco", amount: 84.32, kind: "expense", recurrence: null, startDate: "2026-07-06" };
+    const { dailyBalance } = project([todayCharge], settings, "2026-07-06", "2026-07-08");
+    expect(dailyBalance[0]).toEqual({ date: "2026-07-06", balance: 1000 - 84.32 });
+  });
+
+  it("does not double-count a same-day charge when the balance is re-anchored", () => {
+    // What the Now editor does: the typed balance already reflects today's charges,
+    // so it stores (typed - todayNet) as the start-of-day anchor.
+    const charge: Rule = { id: "c", name: "Gas", amount: 51.1, kind: "expense", recurrence: null, startDate: "2026-07-06" };
+    const typed = 948.9;                       // what the bank says right now
+    const todayNet = -51.1;
+    const reanchored = { startingBalance: typed - todayNet, asOfDate: "2026-07-06" };
+    const { dailyBalance } = project([charge], reanchored, "2026-07-06", "2026-07-06");
+    expect(dailyBalance[0].balance).toBeCloseTo(typed, 10);
+  });
+
   it("clamps ranges beyond 5 years", () => {
     const { events } = project([paycheck], settings, "2026-01-01", "2099-01-01");
     const last = events[events.length - 1];

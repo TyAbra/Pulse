@@ -7,19 +7,21 @@ import { todayLocal } from "../lib/dates";
 export type ZoomLevel = "month" | "quarter" | "year";
 const LEVELS: ZoomLevel[] = ["month", "quarter", "year"];
 
-function BalanceEditor({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { settings, setSettings } = useStore();
-  const [draft, setDraft] = useState(String(settings.startingBalance));
+function BalanceEditor({ open, now, todayNet, onClose }: {
+  open: boolean; now: number; todayNet: number; onClose: () => void;
+}) {
+  const { setSettings } = useStore();
+  const [draft, setDraft] = useState(String(now));
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(String(settings.startingBalance));
+    setDraft(String(now));
     setError("");
     const id = requestAnimationFrame(() => inputRef.current?.select());
     return () => cancelAnimationFrame(id);
-  }, [open, settings.startingBalance]);
+  }, [open, now]);
 
   if (!open) return null;
 
@@ -30,7 +32,9 @@ function BalanceEditor({ open, onClose }: { open: boolean; onClose: () => void }
       inputRef.current?.focus();
       return;
     }
-    setSettings({ startingBalance: n, asOfDate: todayLocal() });
+    // The typed number is the balance right now, which already reflects today's logged
+    // events — so anchor the start of today behind them to avoid double-counting.
+    setSettings({ startingBalance: n - todayNet, asOfDate: todayLocal() });
     onClose();
   };
 
@@ -129,8 +133,9 @@ function SettingsButton() {
   );
 }
 
-export function TopBar({ now, monthEnd, zoom, onZoom }: {
-  now: number; monthEnd: number; zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void;
+export function TopBar({ now, monthEnd, todayNet, zoom, onZoom }: {
+  now: number; monthEnd: number; todayNet: number;
+  zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void;
 }) {
   const [editingBalance, setEditingBalance] = useState(false);
 
@@ -151,7 +156,8 @@ export function TopBar({ now, monthEnd, zoom, onZoom }: {
           <SettingsButton />
         </div>
       </div>
-      <BalanceEditor open={editingBalance} onClose={() => setEditingBalance(false)} />
+      <BalanceEditor open={editingBalance} now={now} todayNet={todayNet}
+        onClose={() => setEditingBalance(false)} />
     </>
   );
 }

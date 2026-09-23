@@ -51,12 +51,12 @@ export function project(rules: Rule[], settings: Settings, from: LocalDate, to: 
     byDate.set(e.date, (byDate.get(e.date) ?? 0) + (e.kind === "income" ? e.amount : -e.amount));
   }
 
-  // Running balance: startingBalance is the balance ON asOfDate (before that day's later events are irrelevant);
-  // events strictly after asOfDate move the balance.
+  // Running balance: startingBalance is the balance at the START of asOfDate, so events
+  // ON that day still move it — charges you log the day they hit have to count.
   const dailyBalance: DayBalance[] = [];
   let bal = settings.startingBalance;
   for (let d = walkStart; compare(d, end) <= 0; d = addDays(d, 1)) {
-    if (compare(d, settings.asOfDate) > 0) bal += byDate.get(d) ?? 0;
+    if (compare(d, settings.asOfDate) >= 0) bal += byDate.get(d) ?? 0;
     if (compare(d, from) >= 0) dailyBalance.push({ date: d, balance: bal });
   }
 
