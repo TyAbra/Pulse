@@ -7,6 +7,8 @@ export interface BulkRow {
   raw: string;
   name: string;
   amount: number;
+  /** Set only when the line carries an explicit sign; otherwise the batch default wins. */
+  kind?: "income" | "expense";
   error?: string;
 }
 
@@ -23,16 +25,31 @@ export function parseBulkLine(raw: string): BulkRow {
   if (!matches) return { raw, name: line, amount: 0, error: "No amount found" };
 
   // Take the last number: names far more often lead ("Costco 84.32") than trail.
-  const match = matches[matches.length - 1];
+  // Prefer the last token with cents. A store number can trail the name
+  // ("RAISING CANES 0103 -13.09") or lead it, and taking the plain last number
+  // silently turned that line into $103.
+  const withCents = matches.filter((m) => m.includes("."));
+  const match = (withCents.length ? withCents : matches)[
+    (withCents.length ? withCents : matches).length - 1
+  ];
   const amount = toNumber(match);
+  const at = line.lastIndexOf(match);
+
+  // A scanned statement line leads with the sign ("-7.57 Corner Store"), which is
+  // how a deposit mixed into a batch of withdrawals keeps its direction.
+  const before = line.slice(0, at).trimEnd();
+  const kind = /[-−–]$/.test(before) ? "expense" as const
+    : before.endsWith("+") ? "income" as const
+    : undefined;
+
   const name = line
-    .slice(0, line.lastIndexOf(match))
-    .concat(line.slice(line.lastIndexOf(match) + match.length))
+    .slice(0, at)
+    .concat(line.slice(at + match.length))
     .replace(/\s+/g, " ")
     .replace(/^[-–—:,.\s]+|[-–—:,.\s]+$/g, "");
 
-  if (!(amount > 0)) return { raw, name, amount, error: "Amount must be greater than 0" };
-  return { raw, name: name || "Withdrawal", amount };
+  if (!(amount > 0)) return { raw, name, amount, kind, error: "Amount must be greater than 0" };
+  return { raw, name: name || "Withdrawal", amount, kind };
 }
 
 /** Blank lines are skipped; every other line comes back, flagged if unusable. */
@@ -49,7 +66,7 @@ export function bulkTotal(rows: BulkRow[]): number {
 
 export function rowsToRules(
   rows: BulkRow[],
-  kind: "income" | "expense",
+  defaultKind: "income" | "expense",
   date: LocalDate,
 ): Rule[] {
   return rows
@@ -58,10 +75,18 @@ export function rowsToRules(
       const input: RuleInput = {
         name: r.name,
         amount: r.amount,
-        kind,
+        kind: r.kind ?? defaultKind,
         startDate: date,
         repeat: "none",
       };
       return makeRule(input);
     });
+}
+
+/** Signed rows net out; unsigned ones follow the batch default. */
+export function bulkNet(rows: BulkRow[], defaultKind: "income" | "expense"): number {
+  return rows.reduce((sum, r) => {
+    if (r.error) return sum;
+    return sum + ((r.kind ?? defaultKind) === "income" ? r.amount : -r.amount);
+  }, 0);
 }

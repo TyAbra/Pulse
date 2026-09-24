@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { makeRule, validateRule, type Repeat, type Rule, type RuleInput } from "../lib/rules";
-import { bulkTotal, parseBulkLines, rowsToRules } from "../lib/bulk";
+import { bulkNet, parseBulkLines, rowsToRules } from "../lib/bulk";
+import { statementToLines } from "../lib/statement";
+import { readStatementImage } from "../lib/ocr";
 import { todayLocal } from "../lib/dates";
 import { useStore } from "../store/useStore";
 
@@ -39,11 +41,34 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
   const [kind, setKind] = useState<"income" | "expense">("expense");
   const [date, setDate] = useState(todayLocal());
 
+  const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [scanError, setScanError] = useState("");
+
   const rows = useMemo(() => parseBulkLines(text), [text]);
   const usable = rows.filter(r => !r.error);
-  const total = bulkTotal(rows);
-  const signed = kind === "income" ? total : -total;
+  const net = bulkNet(rows, kind);
   const noun = kind === "income" ? "deposit" : "withdrawal";
+
+  const scan = async (file: File) => {
+    setScanning(true);
+    setScanError("");
+    setProgress(0);
+    try {
+      const raw = await readStatementImage(file, setProgress);
+      const lines = statementToLines(raw);
+      if (!lines) {
+        setScanError("Couldn't find any transactions in that image. Try a tighter crop of just the list.");
+        return;
+      }
+      // Append rather than replace, so a second screenshot adds to the batch.
+      setText(t => (t.trim() ? `${t.trim()}\n${lines}` : lines));
+    } catch {
+      setScanError("Scan failed. You can still type the charges in below.");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const submit = () => {
     if (!usable.length) return;
@@ -58,12 +83,30 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
         <input className={`${field} mt-1`} type="date" value={date}
           onChange={(e) => setDate(e.target.value)} />
       </label>
+      <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed
+        border-[#2c3850] py-2.5 text-sm font-semibold
+        ${scanning ? "text-[var(--dim)]" : "text-[var(--green)]"}`}>
+        {scanning
+          ? `Reading screenshot… ${Math.round(progress * 100)}%`
+          : "📷 Scan a screenshot"}
+        <input type="file" accept="image/*" className="hidden" disabled={scanning}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";           // let the same file be picked again
+            if (f) void scan(f);
+          }} />
+      </label>
+      {scanError && <p className="-mt-1 text-xs text-[var(--red)]">{scanError}</p>}
+
       <label className="text-xs text-[var(--dim)]">One per line — name and amount
         <textarea className={`${field} mt-1 min-h-28 resize-y font-mono text-[13px]`}
-          autoFocus
           placeholder={"Costco 84.32\nGas 51.10\nAmazon 129.99"}
           value={text} onChange={(e) => setText(e.target.value)} />
       </label>
+      {/* Scans are a draft, not a source of truth — say so where it's read. */}
+      <p className="-mt-1 text-[11px] text-[var(--dim)]">
+        Scanned amounts can be misread. Check them against your statement before adding.
+      </p>
 
       {rows.length > 0 && (
         <div className="rounded-xl border border-[#232c3f] bg-[#0d1016]">
@@ -76,30 +119,38 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
                     <span className="truncate text-[var(--dim)] line-through">{r.raw.trim()}</span>
                     <span className="shrink-0 text-[11px] text-[var(--red)]">{r.error}</span>
                   </>
-                ) : (
-                  <>
-                    <span className="truncate">{kind === "income" ? "💵" : "💸"} {r.name}</span>
-                    <span className={`num shrink-0 font-semibold ${kind === "income" ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                      {kind === "income" ? "+" : "−"}{money(r.amount)}
-                    </span>
-                  </>
-                )}
+                ) : (() => {
+                  const rowKind = r.kind ?? kind;
+                  const inbound = rowKind === "income";
+                  return (
+                    <>
+                      <span className="truncate">{inbound ? "💵" : "💸"} {r.name}</span>
+                      <span className={`num shrink-0 font-semibold ${inbound ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                        {inbound ? "+" : "−"}{money(r.amount)}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
           {usable.length > 0 && (
             <div className="border-t border-[#232c3f] px-3 py-2.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--dim)]">{usable.length} {noun}{usable.length === 1 ? "" : "s"}</span>
-                <span className={`num font-bold ${kind === "income" ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                  {kind === "income" ? "+" : "−"}{money(total)}
+                <span className="text-[var(--dim)]">
+                  {usable.length} {usable.some(r => r.kind && r.kind !== kind)
+                    ? `entr${usable.length === 1 ? "y" : "ies"}`
+                    : `${noun}${usable.length === 1 ? "" : "s"}`}
+                </span>
+                <span className={`num font-bold ${net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                  {net >= 0 ? "+" : "−"}{money(net)}
                 </span>
               </div>
               {/* The point of the whole screen: what this does to your balance. */}
               <div className="mt-1 flex items-center justify-between text-[11px] text-[var(--dim)]">
                 <span>Balance</span>
                 <span className="num">
-                  {money(now)} → <span className="text-[var(--text)]">{money(now + signed)}</span>
+                  {money(now)} → <span className="text-[var(--text)]">{money(now + net)}</span>
                 </span>
               </div>
             </div>

@@ -22,6 +22,22 @@ describe("parseBulkLine", () => {
     expect(parseBulkLine("Shell 76 51.10")).toMatchObject({ name: "Shell 76", amount: 51.1 });
   });
 
+  it("prefers the amount with cents over a trailing store number", () => {
+    // Real case from a scanned statement: taking the plain last number read this
+    // $13.09 charge as $103.
+    expect(parseBulkLine("-13.09 RAISING CANES 0103"))
+      .toMatchObject({ name: "RAISING CANES 0103", amount: 13.09, kind: "expense" });
+  });
+
+  it("reads a trailing sign as the direction", () => {
+    expect(parseBulkLine("FIDELITY 74468 P +2057.14")).toMatchObject({ amount: 2057.14, kind: "income" });
+    expect(parseBulkLine("Corner Store -7.57")).toMatchObject({ amount: 7.57, kind: "expense" });
+  });
+
+  it("leaves kind unset when the line has no sign", () => {
+    expect(parseBulkLine("Costco 84.32").kind).toBeUndefined();
+  });
+
   it("falls back to a generic name when only an amount is given", () => {
     expect(parseBulkLine("25.00")).toMatchObject({ name: "Withdrawal", amount: 25 });
   });
