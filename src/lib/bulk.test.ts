@@ -84,3 +84,46 @@ describe("rowsToRules", () => {
     expect(new Set(rules.map((r) => r.id)).size).toBe(3);
   });
 });
+
+import { rowsToRules as toRules } from "./bulk";
+
+describe("per-line dates", () => {
+  it("reads an ISO date and keeps it off the name and amount", () => {
+    expect(parseBulkLine("Costco -84.32 2026-09-22", 2026))
+      .toMatchObject({ name: "Costco", amount: 84.32, date: "2026-09-22" });
+  });
+
+  it("reads M/D against the batch year", () => {
+    expect(parseBulkLine("Gas 51.10 9/22", 2026)).toMatchObject({ amount: 51.1, date: "2026-09-22" });
+  });
+
+  it("reads a written month", () => {
+    expect(parseBulkLine("Uber 22.41 Sep 21, 2026", 2026)).toMatchObject({ amount: 22.41, date: "2026-09-21" });
+  });
+
+  it("leaves date unset when the line has none", () => {
+    expect(parseBulkLine("Costco 84.32", 2026).date).toBeUndefined();
+  });
+
+  it("ignores an impossible date instead of inventing one", () => {
+    expect(parseBulkLine("Costco 84.32 13/45", 2026).date).toBeUndefined();
+  });
+
+  it("does not mistake a store number for a date", () => {
+    expect(parseBulkLine("RAISING CANES 0103 -13.09", 2026))
+      .toMatchObject({ name: "RAISING CANES 0103", amount: 13.09, date: undefined });
+  });
+
+  it("each row lands on its own date, falling back to the batch date", () => {
+    const rows = parseBulkLines("Costco -84.32 2026-09-22\nGas -51.10", 2026);
+    const rules = toRules(rows, "expense", "2026-09-23");
+    expect(rules.map(r => r.startDate)).toEqual(["2026-09-22", "2026-09-23"]);
+  });
+});
+
+describe("name cleanup", () => {
+  it("does not leave the sign stuck to the name", () => {
+    expect(parseBulkLine("FIDELITY 74468 P +2057.14", 2026).name).toBe("FIDELITY 74468 P");
+    expect(parseBulkLine("-84.32 Costco", 2026).name).toBe("Costco");
+  });
+});

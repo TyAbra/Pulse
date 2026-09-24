@@ -28,6 +28,8 @@ body {
 /* Respect the notch / home indicator when installed full-screen */
 .safe-top { padding-top: max(1.25rem, env(safe-area-inset-top)); }
 .safe-fab { bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+/* Clears the FAB so the toast's action button stays tappable. */
+.safe-toast { bottom: calc(max(1.5rem, env(safe-area-inset-bottom)) + 0.5rem); }
 
 /* iOS zooms the page when focusing an input smaller than 16px — force 16px on touch */
 @media (pointer: coarse) {

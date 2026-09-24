@@ -5,11 +5,27 @@ import type { ZoomLevel } from "./TopBar";
 
 const ORDER: ZoomLevel[] = ["year", "quarter", "month"];
 
-export function Canvas({ zoom, onZoom, children }: {
-  zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void; children: React.ReactNode;
+export function Canvas({ zoom, onZoom, onSize, children }: {
+  zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void;
+  onSize?: (w: number, h: number) => void;
+  children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const acc = useRef(0);
+
+  // The canvas used to assume a 120px header. A stacked mobile header is taller
+  // than that, which pushed the month tiles below the fold and under the FAB.
+  // Measure instead, and hand the real size to the wave.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onSize) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      onSize(width, height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onSize]);
 
   // Pinch-zoom survival kit:
   // 1. touch-action: none (className below)
@@ -51,7 +67,7 @@ export function Canvas({ zoom, onZoom, children }: {
   return (
     // Month view is a scrollable list, so it needs vertical panning; the zoomed-out
     // levels keep touch-action:none for the pinch-zoom survival kit.
-    <div ref={ref} className={`relative h-[calc(100dvh-120px)] select-none ${
+    <div ref={ref} className={`relative min-h-0 flex-1 select-none ${
       zoom === "month" ? "touch-pan-y" : "touch-none"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={zoom} className="absolute inset-0"

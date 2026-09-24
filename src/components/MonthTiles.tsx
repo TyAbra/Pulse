@@ -21,6 +21,10 @@ function Spark({ points }: { points: number[] }) {
 const money = (n: number) =>
   `${n < 0 ? "−" : ""}$${Math.round(Math.abs(n)).toLocaleString()}`;
 
+// Tiles are a glance, not a ledger: whole dollars keep "in $4,114 · out $1,860"
+// on one line at 375px instead of clipping mid-number.
+const compact = (n: number) => `$${Math.round(n).toLocaleString()}`;
+
 export function MonthTiles({ summaries, dailyBalance, onPick }: {
   summaries: MonthSummary[]; dailyBalance: DayBalance[]; onPick: (month: string) => void;
 }) {
@@ -43,9 +47,9 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, type: "spring", stiffness: 200, damping: 22 }}
             whileHover={{ y: -6, scale: 1.03 }}
-            className={`min-w-[104px] flex-1 shrink-0 rounded-2xl border p-3 text-center backdrop-blur
+            className={`min-w-[104px] flex-1 shrink-0 overflow-hidden rounded-2xl border p-3 text-center backdrop-blur
               ${hot ? "border-[#232c3f] bg-[#141926ee]" : "border-[#3f2330] bg-[#1a1420ee]"}`}>
-            <div className="text-[11px] uppercase tracking-widest text-[var(--dim)]">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-[var(--dim)]">
               {MONTH_NAMES[Number(m.month.slice(5)) - 1]} {m.month.slice(2, 4)}
             </div>
             {/* The headline is what you'd actually have at month end, not the flow. */}
@@ -53,14 +57,21 @@ export function MonthTiles({ summaries, dailyBalance, onPick }: {
               style={{ textShadow: hot ? "0 0 16px #34f5a066" : "0 0 16px #ff5d7a55" }}>
               {money(m.endBalance)}
             </div>
-            <div className="text-[9px] uppercase tracking-widest text-[var(--dim)]">left over</div>
+            <div className="-mt-0.5 text-[9px] uppercase tracking-widest text-[var(--dim)]">left over</div>
             <div className={`num mt-1 whitespace-nowrap text-[11px] font-semibold ${m.net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-              {m.net >= 0 ? "▲" : "▼"} {m.net >= 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString()}
+              {m.net >= 0 ? "▲" : "▼"} {m.net >= 0 ? "+" : "−"}{compact(Math.abs(m.net))}
             </div>
-            <div className="mt-0.5 flex items-center justify-center gap-2 text-[10px]">
-              <span className="num text-[var(--green)]">in ${m.in.toLocaleString()}</span>
-              <span className="text-[var(--dim)]">·</span>
-              <span className="num text-[var(--red)]">out ${m.out.toLocaleString()}</span>
+            {/* Stacked, not inline: three tiles across a 375px phone leave ~104px
+                each, and "in $4,114 · out $1,860" needs half again as much. */}
+            <div className="mx-auto mt-1.5 flex max-w-[8.5rem] flex-col gap-0.5 text-[10px] leading-tight">
+              <span className="flex items-baseline justify-between gap-1">
+                <span className="text-[var(--dim)]">in</span>
+                <span className="num text-[var(--green)]">{compact(m.in)}</span>
+              </span>
+              <span className="flex items-baseline justify-between gap-1">
+                <span className="text-[var(--dim)]">out</span>
+                <span className="num text-[var(--red)]">{compact(m.out)}</span>
+              </span>
             </div>
             <Spark points={spark} />
           </motion.button>

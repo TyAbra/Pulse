@@ -1,3 +1,4 @@
+import { findDate, type LocalDate } from "./dates";
 /**
  * Turns raw OCR output from a bank statement screenshot into clean
  * "Name -12.34" lines for the bulk box.
@@ -28,6 +29,8 @@ export interface StatementEntry {
   name: string;
   amount: number;
   kind: "income" | "expense";
+  /** The row's own date, when the statement prints one next to it. */
+  date?: LocalDate;
 }
 
 function cleanName(raw: string): string {
@@ -37,14 +40,23 @@ function cleanName(raw: string): string {
     .replace(/^[-–—:,.\s]+|[-–—:,.\s]+$/g, "");
 }
 
-export function parseStatementText(raw: string): StatementEntry[] {
+export function parseStatementText(raw: string, fallbackYear = new Date().getFullYear()): StatementEntry[] {
   const entries: StatementEntry[] = [];
   let pendingName = "";
 
   for (const rawLine of raw.split("\n")) {
     const line = rawLine.replace(LEADING_ICON, "").trim();
     if (!line) continue;
-    if (NOISE.some((re) => re.test(line))) continue;
+    if (NOISE.some((re) => re.test(line))) {
+      // The account row carries the transaction's date ("Checking - 6628
+      // September 23, 2026"), so it belongs to the entry just above it. A year
+      // OCR mangled into "20246" fails validation and leaves the date unset,
+      // which falls back to the batch date instead of inventing one.
+      const dated = findDate(line, fallbackYear);
+      const last = entries[entries.length - 1];
+      if (dated && last && !last.date) last.date = dated;
+      continue;
+    }
 
     const m = line.match(MONEY);
     if (!m) {
@@ -64,7 +76,8 @@ export function parseStatementText(raw: string): StatementEntry[] {
     const name = head || pendingName || "Withdrawal";
     if (head) pendingName = "";
 
-    entries.push({ name, amount, kind: sign === "+" ? "income" : "expense" });
+    const own = findDate(line, fallbackYear) ?? undefined;
+    entries.push({ name, amount, kind: sign === "+" ? "income" : "expense", date: own });
   }
 
   return entries;
@@ -75,6 +88,9 @@ export function statementToLines(raw: string): string {
   // Name first, amount last — the same shape someone types by hand, and it keeps
   // a trailing store number in the name from being mistaken for the amount.
   return parseStatementText(raw)
-    .map((e) => `${e.name} ${e.kind === "income" ? "+" : "-"}${e.amount.toFixed(2)}`)
+    .map((e) => {
+      const head = `${e.name} ${e.kind === "income" ? "+" : "-"}${e.amount.toFixed(2)}`;
+      return e.date ? `${head} ${e.date}` : head;
+    })
     .join("\n");
 }

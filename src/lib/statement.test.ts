@@ -136,3 +136,36 @@ describe("statementToLines", () => {
     expect(bulkNet(rows, "expense")).toBeCloseTo(-738.06, 2);
   });
 });
+
+describe("dates from the statement", () => {
+  it("takes each row's date from the account line below it", () => {
+    const entries = parseStatementText(OCR, 2026);
+    expect(entries[0].date).toBe("2026-09-23");
+    expect(entries[9].date).toBe("2026-09-22");
+    expect(entries[16].date).toBe("2026-09-21");
+  });
+
+  it("keeps month and day when OCR mangles only the year", () => {
+    // "September 23, 20246" for Money App Cash Advance: "20246" fails the
+    // year check, so the month and day stand and the year comes from context
+    // rather than the row being thrown away or dated 20246.
+    expect(parseStatementText(OCR, 2026)[2].date).toBe("2026-09-23");
+  });
+
+  it("refuses a date whose month or day is impossible", () => {
+    const bogus = `Store -5.00 5
+Checking - 6628 Smarch 47, 2026`;
+    expect(parseStatementText(bogus, 2026)[0].date).toBeUndefined();
+  });
+
+  it("carries the dates into the editable lines", () => {
+    expect(statementToLines(OCR).split("\n")[0]).toBe("AFFIRM.COM PAYMENTS -40.51 2026-09-23");
+  });
+
+  it("a scan spanning three days keeps all three", () => {
+    const rows = parseBulkLines(statementToLines(OCR), 2026);
+    const dates = new Set(rows.map(r => r.date).filter(Boolean));
+    expect([...dates].sort()).toEqual(["2026-09-21", "2026-09-22", "2026-09-23"]);
+    expect(bulkNet(rows, "expense")).toBeCloseTo(-738.06, 2);
+  });
+});

@@ -35,7 +35,9 @@ function KindToggle({ kind, onChange }: {
   );
 }
 
-function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
+function BulkForm({ now, onClose, onAdded }: {
+  now: number; onClose: () => void; onAdded: (count: number, noun: string) => void;
+}) {
   const { addRules } = useStore();
   const [text, setText] = useState("");
   const [kind, setKind] = useState<"income" | "expense">("expense");
@@ -49,6 +51,11 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
   const usable = rows.filter(r => !r.error);
   const net = bulkNet(rows, kind);
   const noun = kind === "income" ? "deposit" : "withdrawal";
+  // A batch holding both directions is just "entries" — calling a deposit a
+  // withdrawal on the confirm button is exactly the wrong place to be sloppy.
+  const mixed = usable.some(r => r.kind && r.kind !== kind);
+  const countedNoun = (n: number) =>
+    mixed ? (n === 1 ? "entry" : "entries") : `${noun}${n === 1 ? "" : "s"}`;
 
   const scan = async (file: File) => {
     setScanning(true);
@@ -73,6 +80,7 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
   const submit = () => {
     if (!usable.length) return;
     addRules(rowsToRules(rows, kind, date));
+    onAdded(usable.length, countedNoun(usable.length));
     onClose();
   };
 
@@ -82,6 +90,9 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
       <label className="text-xs text-[var(--dim)]">Date they hit
         <input className={`${field} mt-1`} type="date" value={date}
           onChange={(e) => setDate(e.target.value)} />
+        <span className="mt-1 block font-normal text-[10px] leading-relaxed text-[var(--dim)]">
+          Used for lines without their own date. A scan keeps each row's date.
+        </span>
       </label>
       <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed
         border-[#2c3850] py-2.5 text-sm font-semibold
@@ -124,7 +135,14 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
                   const inbound = rowKind === "income";
                   return (
                     <>
-                      <span className="truncate">{inbound ? "💵" : "💸"} {r.name}</span>
+                      <span className="min-w-0 truncate">
+                        {inbound ? "💵" : "💸"} {r.name}
+                        {r.date && r.date !== date && (
+                          <span className="num ml-1.5 text-[10px] text-[var(--dim)]">
+                            {r.date.slice(5).replace("-", "/")}
+                          </span>
+                        )}
+                      </span>
                       <span className={`num shrink-0 font-semibold ${inbound ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
                         {inbound ? "+" : "−"}{money(r.amount)}
                       </span>
@@ -137,11 +155,7 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
           {usable.length > 0 && (
             <div className="border-t border-[#232c3f] px-3 py-2.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--dim)]">
-                  {usable.length} {usable.some(r => r.kind && r.kind !== kind)
-                    ? `entr${usable.length === 1 ? "y" : "ies"}`
-                    : `${noun}${usable.length === 1 ? "" : "s"}`}
-                </span>
+                <span className="text-[var(--dim)]">{usable.length} {countedNoun(usable.length)}</span>
                 <span className={`num font-bold ${net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
                   {net >= 0 ? "+" : "−"}{money(net)}
                 </span>
@@ -161,7 +175,7 @@ function BulkForm({ now, onClose }: { now: number; onClose: () => void }) {
       <button onClick={submit} disabled={!usable.length}
         className="mt-1 rounded-xl bg-gradient-to-br from-[var(--green)] to-[var(--green2)] py-3 font-bold text-[#03140c]
           shadow-[0_0_24px_#34f5a055] disabled:opacity-40 disabled:shadow-none">
-        {usable.length ? `Add ${usable.length} ${noun}${usable.length === 1 ? "" : "s"}` : "Add"}
+        {usable.length ? `Add ${usable.length} ${countedNoun(usable.length)}` : "Add"}
       </button>
     </div>
   );
@@ -224,8 +238,9 @@ function SingleForm({ editing, onClose }: { editing: Rule | null; onClose: () =>
   );
 }
 
-export function RuleSheet({ editing, now, onClose }: {
+export function RuleSheet({ editing, now, onClose, onAdded }: {
   editing: Rule | null; now: number; onClose: () => void;
+  onAdded: (count: number, noun: string) => void;
 }) {
   const [bulk, setBulk] = useState(false);
 
@@ -234,7 +249,10 @@ export function RuleSheet({ editing, now, onClose }: {
       <motion.div initial={{ y: 400 }} animate={{ y: 0 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
         className="max-h-[88dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-[#232c3f] bg-[var(--panel)] p-6 pb-8">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        {/* Sticky so the One/Several switch stays reachable once the preview
+            makes the sheet scroll. */}
+        <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-4 flex items-center justify-between gap-3
+          border-b border-[#1a2030] bg-[var(--panel)] px-6 pb-3 pt-6">
           <h2 className="text-lg font-bold">
             {editing ? "Edit money event" : bulk ? "Add several" : "Add money event"}
           </h2>
@@ -252,7 +270,7 @@ export function RuleSheet({ editing, now, onClose }: {
           )}
         </div>
         {bulk && !editing
-          ? <BulkForm now={now} onClose={onClose} />
+          ? <BulkForm now={now} onClose={onClose} onAdded={onAdded} />
           : <SingleForm editing={editing} onClose={onClose} />}
       </motion.div>
     </div>

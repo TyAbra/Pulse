@@ -58,7 +58,7 @@ function BalanceEditor({ open, now, todayNet, onClose }: {
           Balance today
         </h2>
         <p className="mt-1 text-sm text-[var(--dim)] text-pretty">
-          What you actually have right now. Month-end projections start from this number.
+          What you actually have right now. Everything ahead is projected from this number.
         </p>
         <label className="mt-4 block">
           <span className="sr-only">Amount in dollars</span>
@@ -96,7 +96,7 @@ function BalanceEditor({ open, now, todayNet, onClose }: {
   );
 }
 
-function SettingsButton() {
+function SettingsButton({ onNotice }: { onNotice: (message: string) => void }) {
   const [open, setOpen] = useState(false);
   const { exportJSON, importJSON } = useStore();
   const doExport = () => {
@@ -108,7 +108,18 @@ function SettingsButton() {
     URL.revokeObjectURL(a.href);
   };
   const doImport = (file: File) => {
-    file.text().then(t => { if (!importJSON(t)) alert("That file isn't a valid Pulse backup."); });
+    file.text().then((t) => {
+      const result = importJSON(t);
+      if (!result) {
+        onNotice("That file isn't a valid Pulse backup.");
+        return;
+      }
+      const { added, skipped } = result;
+      const parts = [`Added ${added} ${added === 1 ? "entry" : "entries"}`];
+      if (skipped) parts.push(`${skipped} already here`);
+      onNotice(`${parts.join(", ")}.`);
+      setOpen(false);
+    });
   };
   return (
     <div className="relative ml-2">
@@ -116,7 +127,7 @@ function SettingsButton() {
         className="rounded-full border border-[#232c3f] bg-[#10141ecc] px-3 py-1.5 text-sm">⚙</button>
       {open && (
         <div className="absolute right-0 top-10 z-40 w-64 rounded-2xl border border-[#232c3f] bg-[var(--panel)] p-4 text-sm">
-          <p className="text-xs text-[var(--dim)] mb-3 text-pretty">
+          <p className="mb-3 text-pretty text-xs text-[var(--dim)]">
             Tap <span className="text-[var(--text)]">Now</span> in the header to update your balance.
           </p>
           <div className="flex gap-2">
@@ -126,24 +137,28 @@ function SettingsButton() {
                 onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])} />
             </label>
           </div>
-          <p className="mt-2 text-[10px] text-[var(--dim)]">Your data never leaves this device.</p>
+          <p className="mt-2 text-pretty text-[10px] leading-relaxed text-[var(--dim)]">
+            Import adds to what you have — it never replaces it. Your data never leaves this device.
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-export function TopBar({ now, monthEnd, todayNet, zoom, onZoom }: {
-  now: number; monthEnd: number; todayNet: number;
+export function TopBar({ now, endValue, endLabel, todayNet, zoom, onZoom, onNotice }: {
+  now: number; endValue: number; endLabel: string; todayNet: number;
   zoom: ZoomLevel; onZoom: (z: ZoomLevel) => void;
+  onNotice: (message: string) => void;
 }) {
   const [editingBalance, setEditingBalance] = useState(false);
 
   return (
     <>
-      <div className="safe-top flex items-start justify-between gap-3 px-5 pb-4 z-10 relative">
-        <BalancePair now={now} monthEnd={monthEnd} onEditNow={() => setEditingBalance(true)} />
-        <div className="flex items-start shrink-0">
+      {/* On a phone the pills claim most of 375px, which wrapped every balance
+          label onto three lines. Stack there, sit side by side from sm up. */}
+      <div className="safe-top relative z-10 flex flex-col gap-3 px-5 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="flex shrink-0 items-start justify-end sm:order-2">
           <div className="flex gap-1 rounded-full border border-[#232c3f] bg-[#10141ecc] p-1 backdrop-blur">
             {LEVELS.map((l) => (
               <button key={l} onClick={() => onZoom(l)}
@@ -153,7 +168,11 @@ export function TopBar({ now, monthEnd, todayNet, zoom, onZoom }: {
               </button>
             ))}
           </div>
-          <SettingsButton />
+          <SettingsButton onNotice={onNotice} />
+        </div>
+        <div className="min-w-0 sm:order-1">
+          <BalancePair now={now} endValue={endValue} endLabel={endLabel}
+            onEditNow={() => setEditingBalance(true)} />
         </div>
       </div>
       <BalanceEditor open={editingBalance} now={now} todayNet={todayNet}

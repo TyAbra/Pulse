@@ -7,6 +7,8 @@ import { EventCard } from "./EventCard";
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
+const whole = (n: number) => `$${Math.round(Math.abs(n)).toLocaleString()}`;
+
 export function MonthView({ month, events, startBalance, endBalance, onEdit, onNav }: {
   month: string; events: CashEvent[]; startBalance: number; endBalance: number;
   onEdit: (e: CashEvent) => void; onNav: (dir: 1 | -1) => void;
@@ -46,10 +48,10 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
       {/* Money summary — the whole point: in, out, and where you land */}
       <div className="shrink-0 rounded-3xl border border-[#232c3f] bg-[#10141ecc] p-5 backdrop-blur">
         <div className="pb-4 text-center">
-          <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dim)]">
             Left over end of {MONTH_NAMES[Number(month.slice(5)) - 1]}
           </div>
-          <div className={`num text-4xl font-extrabold ${endBalance >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+          <div className={`num -mt-0.5 whitespace-nowrap text-4xl font-extrabold leading-tight ${endBalance >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
             style={{ textShadow: endBalance >= 0 ? "0 0 24px #34f5a055" : "0 0 24px #ff5d7a55" }}>
             {endBalance < 0 ? "−" : ""}${Math.round(Math.abs(endBalance)).toLocaleString()}
           </div>
@@ -59,25 +61,29 @@ export function MonthView({ month, events, startBalance, endBalance, onEdit, onN
             </span>
           </div>
         </div>
+        {/* Whole dollars and nowrap: cents pushed "−$1,859.99" onto two lines at
+            375px, and every other summary in the app rounds. */}
         <div className="flex items-stretch justify-between gap-3 border-t border-[#232c3f] pt-4">
-          <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">Coming in</div>
-            <div className="num text-2xl font-extrabold text-[var(--green)]" style={{ textShadow: "0 0 18px #34f5a044" }}>
-              +${income.toLocaleString()}
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dim)]">Coming in</div>
+            <div className="num whitespace-nowrap text-xl font-extrabold text-[var(--green)] sm:text-2xl"
+              style={{ textShadow: "0 0 18px #34f5a044" }}>
+              +{whole(income)}
             </div>
           </div>
-          <div className="w-px bg-[#232c3f]" />
-          <div className="flex-1 text-right">
-            <div className="text-[10px] uppercase tracking-widest text-[var(--dim)]">Going out</div>
-            <div className="num text-2xl font-extrabold text-[var(--red)]" style={{ textShadow: "0 0 18px #ff5d7a44" }}>
-              −${expense.toLocaleString()}
+          <div className="w-px shrink-0 bg-[#232c3f]" />
+          <div className="min-w-0 flex-1 text-right">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dim)]">Going out</div>
+            <div className="num whitespace-nowrap text-xl font-extrabold text-[var(--red)] sm:text-2xl"
+              style={{ textShadow: "0 0 18px #ff5d7a44" }}>
+              −{whole(expense)}
             </div>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between border-t border-[#232c3f] pt-3">
-          <span className="text-xs font-semibold uppercase tracking-widest text-[var(--dim)]">Net this month</span>
-          <span className={`num text-lg font-extrabold ${net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-            {net >= 0 ? "+" : "−"}${Math.abs(net).toLocaleString()}
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dim)]">Net this month</span>
+          <span className={`num whitespace-nowrap text-lg font-extrabold ${net >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+            {net >= 0 ? "+" : "−"}{whole(Math.abs(net))}
           </span>
         </div>
       </div>

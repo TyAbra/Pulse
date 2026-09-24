@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 
 function formatMoney(v: number) {
-  return (v < 0 ? "-$" : "$") + Math.abs(Math.round(v)).toLocaleString();
+  return (v < 0 ? "−$" : "$") + Math.abs(Math.round(v)).toLocaleString();
 }
 
 function AnimatedAmount({ value, className }: { value: number; className?: string }) {
@@ -15,42 +15,48 @@ function AnimatedAmount({ value, className }: { value: number; className?: strin
   return <motion.div className={className}>{text}</motion.div>;
 }
 
+const LABEL = "whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--dim)]";
+
 export function BalancePair({
-  now, monthEnd, onEditNow,
+  now, endValue, endLabel, onEditNow,
 }: {
   now: number;
-  monthEnd: number;
+  endValue: number;
+  endLabel: string;
   onEditNow: () => void;
 }) {
-  const delta = monthEnd - now;
+  const delta = endValue - now;
   return (
-    <div className="min-w-0 flex flex-col gap-2">
+    // Gap between the two figures is wider than the gap inside either one, so
+    // each label reads as belonging to the number under it.
+    <div className="flex min-w-0 flex-col gap-3.5">
       <button
         type="button"
         onClick={onEditNow}
-        className="text-left group min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)]"
+        className="group min-w-0 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)]"
         aria-label="Update balance today"
       >
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--dim)]">
+        <div className={LABEL}>
           Now
-          <span className="ml-1.5 normal-case tracking-normal text-[var(--dim)] group-hover:text-[var(--green)] transition-colors">
+          <span className="ml-1.5 normal-case tracking-normal text-[var(--dim)] transition-colors group-hover:text-[var(--green)]">
             · tap to update
           </span>
         </div>
         <AnimatedAmount
           value={now}
-          className="num text-3xl font-extrabold text-[var(--text)] group-hover:text-[var(--green)] transition-colors"
+          className="num -mt-0.5 text-3xl font-extrabold leading-none tracking-tight text-[var(--text)] transition-colors group-hover:text-[var(--green)]"
         />
       </button>
 
       <div className="min-w-0">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--dim)]">Month end</div>
+        <div className={LABEL}>{endLabel}</div>
         <AnimatedAmount
-          value={monthEnd}
-          className="num text-xl sm:text-2xl font-bold bg-gradient-to-r from-[var(--text)] to-[var(--green)] bg-clip-text text-transparent"
+          value={endValue}
+          className="num -mt-0.5 bg-gradient-to-r from-[var(--text)] to-[var(--green)] bg-clip-text text-xl font-bold leading-none tracking-tight text-transparent sm:text-2xl"
         />
-        <div className={`num text-xs font-semibold ${delta >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-          {delta >= 0 ? "▲ +" : "▼ -"}${Math.abs(Math.round(delta)).toLocaleString()} this month
+        <div className={`num mt-1 whitespace-nowrap text-xs font-semibold ${delta >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+          {delta >= 0 ? "▲ +" : "▼ −"}${Math.abs(Math.round(delta)).toLocaleString()}
+          <span className="ml-1 font-normal text-[var(--dim)]">from now</span>
         </div>
       </div>
     </div>
